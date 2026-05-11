@@ -1,7 +1,7 @@
 [project]
 name = "kobiops"
 version = "0.1.0"
-description = "AI Destekli KOBİ Operasyon Otomasyonu — Faz 0 / Hackathon MVP"
+description = "AI Destekli KOBİ Operasyon Otomasyonu"
 requires-python = ">=3.12"
 dependencies = [
     # Web framework
