@@ -2,19 +2,20 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Sistem gereksinimleri (örneğin asyncpg veya uv için gerekli olabilecek paketler)
+# Sistem gereksinimleri (asyncpg için gcc gerekli)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# uv kurulumu (daha hızlı paket yönetimi için)
-RUN pip install uv
+# uv kurulumu
+RUN pip install --no-cache-dir uv
 
-# Bağımlılıkları kopyala ve kur
+# Bağımlılık dosyalarını önce kopyala (layer cache için)
 COPY pyproject.toml .
-# uv pip install kullanarak bağımlılıkları yükle (veya pyproject.toml henüz tam değilse temel paketleri yükleyelim)
-# Şimdilik standart pip de kullanılabilir:
-RUN uv pip install --system fastapi uvicorn pydantic-ai python-telegram-bot asyncpg sqlalchemy pydantic-settings
+
+# Bağımlılıkları kur
+RUN uv pip install --system -e ".[dev]"
 
 # Proje kodlarını kopyala
 COPY . .
@@ -22,4 +23,8 @@ COPY . .
 # FastAPI uygulaması 8000 portundan kalkacak
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
