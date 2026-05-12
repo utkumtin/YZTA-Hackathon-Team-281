@@ -19,6 +19,7 @@ import app.logging  # noqa: F401
 
 # Router imports
 from app.api.health import router as health_router
+from app.api.demo import router as demo_router
 from app.config import settings
 from app.db import check_db_connection
 from app.logging import get_logger
@@ -100,3 +101,4 @@ app = FastAPI(
 
 # ── Router kayıtları ──────────────────────────────────────────────────────────
 app.include_router(health_router)
+app.include_router(demo_router)

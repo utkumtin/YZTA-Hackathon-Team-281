@@ -9,7 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
 
     # AI agent framework
-    "pydantic-ai==1.93.*",
+    "pydantic-ai-slim[google,openai]==1.93.0",
 
     # Database
     "sqlalchemy[asyncio]>=2.0",
