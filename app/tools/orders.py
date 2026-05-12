@@ -11,22 +11,6 @@ from app.models.domain import (
 )
 
 async def get_order(ctx: RunContext[AgentDeps], order_id: int) -> Optional[OrderInfo]:
-    """
-    Kullanıcının belirli bir siparişi (order_id) hakkında detaylı bilgi getirir.
-    
-    Bu tool, müşterinin "Siparişim ne durumda?", "123 numaralı siparişim onaylandı mı?" 
-    gibi sorularına yanıt vermek için kullanılır.
-
-    Not: Bu fonksiyon KVKK gereği Müşteri Adı, Telefonu, Adresi vb. PII verilerini İÇERMEZ. 
-    Kullanıcıya sipariş durumu iletilirken bu alanlar sadece order_id ve referans id'ler üzerinden ifade edilir.
-
-    Args:
-        ctx: AgentDeps runtime context'ini içerir.
-        order_id: Sorgulanmak istenen siparişin eşsiz numarası (ID).
-
-    Returns:
-        Sipariş bulunursa OrderInfo döner, bulunamazsa None döner.
-    """
     # TODO: Gerçek veritabanı sorgusu eklenecek.
     # Örnek SQL: result = await ctx.deps.db.execute(select(Order).where(Order.id == order_id))
     
@@ -45,22 +29,6 @@ async def get_order(ctx: RunContext[AgentDeps], order_id: int) -> Optional[Order
     )
 
 async def get_shipment(ctx: RunContext[AgentDeps], tracking_id: str) -> Optional[ShipmentInfo]:
-    """
-    Belirli bir kargo takip numarası (tracking_id) için kargo durumu bilgisini getirir.
-    
-    Kullanıcı "Kargom nerede?", "TRK123 takip numaralı kargo ne zaman teslim edilecek?" 
-    gibi sorular sorduğunda kargonun anlık durumunu öğrenmek için kullanılır.
-    Kargo hareketleri ve teslimat zamanı (ETA) gibi güncel durumları döner.
-
-    Not: Bu veri PII barındırmaz, kargo sadece taşıyıcı, anlık şube ve statü bilgisi ile ifade edilir.
-
-    Args:
-        ctx: AgentDeps runtime context'ini içerir.
-        tracking_id: Kargo firması tarafından verilen takip numarası.
-
-    Returns:
-        Kargo bulunursa ShipmentInfo döner, bulunamazsa None döner.
-    """
     # TODO: Gerçek veritabanı / Kargo entegrasyonu sorgusu eklenecek.
     
     # Mock Data
