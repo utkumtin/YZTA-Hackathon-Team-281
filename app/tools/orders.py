@@ -11,6 +11,16 @@ from app.models.domain import (
 )
 
 async def get_order(ctx: RunContext[AgentDeps], order_id: int) -> Optional[OrderInfo]:
+    """
+    Görev: order_id ile e-ticaret veritabanındaki tek bir sipariş kaydını getirir.
+    Ne zaman kullanılır: Müşteri mesajında bir sipariş numarası geçtiğinde.
+        Mesajda sipariş numarası YOKSA bu tool'u ÇAĞIRMA — müşteriden numarayı iste.
+    Parametre: order_id (int) — Sipariş ID'si, pozitif tam sayı.
+    Dönüş: OrderInfo objesi (sipariş statüsü, has_shipment, tracking_id) veya
+        sipariş bulunamazsa None. Müşteri adı/telefonu DÖNMEZ.
+
+    ÇAĞIRMA: Sipariş statüsünü tahmin etmek veya müşteri kimliği aramak için.
+    """
     # TODO: Gerçek veritabanı sorgusu eklenecek.
     # Örnek SQL: result = await ctx.deps.db.execute(select(Order).where(Order.id == order_id))
     
@@ -29,6 +39,13 @@ async def get_order(ctx: RunContext[AgentDeps], order_id: int) -> Optional[Order
     )
 
 async def get_shipment(ctx: RunContext[AgentDeps], tracking_id: str) -> Optional[ShipmentInfo]:
+    """
+    Görev: tracking_id ile kargo durumunu ve detaylarını getirir.
+    Ne zaman kullanılır: get_order çıktısında has_shipment=True ve tracking_id doluysa çağrılır.
+        has_shipment=False ise bu tool'u çağırma.
+    Parametre: tracking_id (str) — Kargo takip numarası.
+    Dönüş: ShipmentInfo objesi veya kargo bulunamazsa None. PII içermez.
+    """
     # TODO: Gerçek veritabanı / Kargo entegrasyonu sorgusu eklenecek.
     
     # Mock Data
