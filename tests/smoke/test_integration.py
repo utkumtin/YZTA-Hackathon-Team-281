@@ -1,7 +1,7 @@
 """
-tests/smoke/test_integration.py — S2/S3 entegrasyon testi
+tests/smoke/test_integration.py — entegrasyon testi
 
-Y2 görevi: POST /demo/reset → POST /demo/set-anomaly → POST /demo/trigger-jobs
+POST /demo/reset → POST /demo/set-anomaly → POST /demo/trigger-jobs
 akışını gerçek DB ve FastAPI test client'ı ile doğrular.
 
 Notlar:
@@ -11,18 +11,17 @@ Notlar:
   - reset ve set-anomaly testleri LLM gerektirmez; her zaman çalışır.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, text
+from sqlalchemy import select
 
 from app.db import AsyncSessionLocal
 from app.main import app
 from app.models.domain import ProactiveRunSummary
-from app.models.tables import NotificationLog, Order, Shipment
-
+from app.models.tables import NotificationLog, Shipment
 
 # ── Yardımcı: uygulama DB üzerinde sorgu çalıştır ────────────────────────────
 
@@ -84,9 +83,7 @@ async def test_reset_seeds_shipment_to_db(reset_client: AsyncClient):
     """/demo/reset sonrası DB'de en az 1 shipment kaydı olmalı."""
     await reset_client.post("/demo/reset")
 
-    count = await _query_scalar(
-        select(Shipment).limit(1)
-    )
+    count = await _query_scalar(select(Shipment).limit(1))
     assert count is not None, "reset sonrası DB'de shipment kaydı bekleniyor"
 
 
@@ -153,9 +150,7 @@ async def test_set_anomaly_updates_db(reset_client: AsyncClient):
         json={"shipment_id": 1, "hours_old": hours_old},
     )
 
-    shipment = await _query_scalar(
-        select(Shipment).where(Shipment.id == 1)
-    )
+    shipment = await _query_scalar(select(Shipment).where(Shipment.id == 1))
     assert shipment is not None
     assert shipment.status == "in_transit"
 
@@ -186,7 +181,7 @@ async def test_set_anomaly_nonexistent_shipment_returns_404(reset_client: AsyncC
 @pytest.mark.asyncio
 async def test_full_flow_reset_set_anomaly_trigger_jobs(reset_client: AsyncClient):
     """
-    S2 tam entegrasyon akışı:
+    Tam entegrasyon akışı:
       1. /demo/reset  → DB temiz + seed verisi yüklenir
       2. /demo/set-anomaly  → shipment anomali durumuna alınır
       3. /demo/trigger-jobs  → ProactiveJobsAgent çalışır (mock)
@@ -280,9 +275,7 @@ async def test_set_anomaly_makes_shipment_detectable_by_list_shipments_anomaly(
         json={"shipment_id": 1, "hours_old": 10},
     )
 
-    shipment = await _query_scalar(
-        select(Shipment).where(Shipment.id == 1)
-    )
+    shipment = await _query_scalar(select(Shipment).where(Shipment.id == 1))
     assert shipment is not None
     assert shipment.status == "in_transit"
 

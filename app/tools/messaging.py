@@ -1,6 +1,6 @@
 """Telegram mesajlaşma ve owner approval tool'ları."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from functools import lru_cache
 
@@ -296,4 +296,58 @@ async def send_owner_email_draft(
         channel="tg_owner",
         entity_ref=sku,
         detail="Supplier email draft sent to owner for approval.",
+    )
+
+
+async def send_morning_briefing(
+    ctx: RunContext[AgentDeps],
+    briefing_date: date,
+    order_count: int,
+    active_shipment_count: int,
+    delayed_shipment_count: int,
+    low_stock_count: int,
+) -> MessageDispatchResult:
+    """
+    Send the daily morning briefing message to the owner via Telegram.
+
+    This tool does not use an LLM. It renders a static template from the
+    provided metrics and sends it to OWNER_TELEGRAM_ID.
+
+    Args:
+        ctx: Runtime context containing AgentDeps, owner chat id and bot token.
+        briefing_date: The date the briefing covers (typically yesterday or today).
+        order_count: Number of orders created in the look-back window.
+        active_shipment_count: Number of currently active (non-delivered) shipments.
+        delayed_shipment_count: Number of active shipments with no update in 24h.
+        low_stock_count: Number of SKUs at or below their reorder threshold.
+
+    Returns:
+        MessageDispatchResult with channel ``tg_owner`` and entity_ref ``briefing``.
+    """
+    formatted_date = briefing_date.strftime("%-d %B")
+
+    lines = [
+        f"🌅 Günaydın! {formatted_date} Özeti",
+        "",
+        f"• {order_count} yeni sipariş geldi.",
+        f"• {active_shipment_count} aktif kargo takipte"
+        + (f", {delayed_shipment_count} gecikme uyarısında." if delayed_shipment_count else "."),
+        f"• {low_stock_count} SKU stok kritik." if low_stock_count else "• Stok seviyesi normal.",
+        "",
+        "Detay için sorabilirsiniz.",
+    ]
+
+    text = "\n".join(lines)
+
+    await _send_telegram_message(
+        bot_token=ctx.deps.bot_token,
+        chat_id=ctx.deps.owner_chat_id,
+        text=text,
+    )
+
+    return MessageDispatchResult(
+        status="sent",
+        channel="tg_owner",
+        entity_ref="briefing",
+        detail=f"Morning briefing sent for {briefing_date.isoformat()}.",
     )

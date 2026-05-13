@@ -128,6 +128,7 @@ class MessageDispatchResult(BaseModel):
         "skipped_no_chat_id",
         "skipped_blocked",  # Telegram Forbidden — kullanıcı bot'u block etmiş
         "skipped_no_anomaly",  # send_owner_summary: items boş
+        "skipped_telegram_error",  # genel TelegramError
     ]
     channel: Literal["tg_customer", "tg_owner", "email"]
     entity_ref: str  # order_id veya sku, debug için
@@ -150,3 +151,43 @@ class ProactiveRunSummary(BaseModel):
     low_stock_detected: int
     low_stock_drafts_sent: int
     low_stock_skipped_duplicate: int
+
+
+# ── Sabah Brifingi modelleri ───────────────────────────────────────────────
+
+
+class OrderSummary(BaseModel):
+    """list_orders_summary tool çıktısı — sabah brifinginde sipariş özeti için.
+
+    PII içermez; customer_id anonim referans olarak taşınır.
+    """
+
+    order_id: int
+    status: OrderStatus
+    created_at: datetime
+    has_shipment: bool
+
+
+class ActiveShipmentInfo(BaseModel):
+    """list_active_shipments tool çıktısı — sabah brifinginde kargo özeti için."""
+
+    tracking_id: str
+    carrier: Carrier
+    status: ShipmentStatus
+    current_branch: str | None
+    eta: date | None
+    is_delayed: bool  # last_status_change_at > 24 saat
+
+
+class BriefingSummary(BaseModel):
+    """MorningBriefingAgent'ın structured final çıktısı.
+
+    /demo/trigger-briefing endpoint'i bu nesneyi HTTP response'a serialize eder.
+    """
+
+    briefing_date: date
+    order_count: int
+    active_shipment_count: int
+    delayed_shipment_count: int
+    low_stock_count: int
+    message_sent: bool

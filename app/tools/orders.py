@@ -1,13 +1,17 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
+
 from pydantic_ai import RunContext
+from sqlalchemy import select
+
 from app.agents.deps import AgentDeps
 from app.models.domain import (
-    OrderInfo,
-    ShipmentInfo,
-    OrderStatus,
-    ShipmentStatus,
     Carrier,
+    OrderInfo,
+    OrderStatus,
+    OrderSummary,
+    ShipmentInfo,
+    ShipmentStatus,
 )
 
 async def get_order(ctx: RunContext[AgentDeps], order_id: int) -> Optional[OrderInfo]:
@@ -60,3 +64,59 @@ async def get_shipment(ctx: RunContext[AgentDeps], tracking_id: str) -> Optional
         last_status_change_at=datetime.now() - timedelta(hours=5),
         eta=date.today() + timedelta(days=1)
     )
+
+
+async def list_orders_summary(
+    ctx: RunContext[AgentDeps],
+    since_hours: int = 24,
+    limit: int = 100,
+) -> list[OrderSummary]:
+    """
+    Fetch a summary of recent orders for the morning briefing.
+
+    Returns orders created in the last ``since_hours`` hours. Does not include
+    PII; only operational fields (order_id, status, created_at, has_shipment).
+
+    Args:
+        ctx: Runtime context containing AgentDeps and the async database session.
+        since_hours: Look-back window in hours. Default 24 (yesterday's orders).
+        limit: Maximum number of orders to return.
+
+    Returns:
+        A list of OrderSummary objects ordered by creation time descending.
+
+    Concurrency note:
+        DB query is guarded with ctx.deps.db_lock because PydanticAI may run
+        tools concurrently on the same AsyncSession.
+    """
+    from app.models.tables import Order, Shipment
+
+    db = ctx.deps.db
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(hours=since_hours)
+
+    stmt = (
+        select(Order)
+        .where(Order.created_at >= since)
+        .order_by(Order.created_at.desc())
+        .limit(limit)
+    )
+
+    async with ctx.deps.db_lock:
+        rows = (await db.execute(stmt)).scalars().all()
+
+    result: list[OrderSummary] = []
+    for order in rows:
+        stmt_ship = select(Shipment).where(Shipment.order_id == order.id)
+        async with ctx.deps.db_lock:
+            shipment = await db.scalar(stmt_ship)
+        result.append(
+            OrderSummary(
+                order_id=order.id,
+                status=OrderStatus(order.status),
+                created_at=order.created_at,
+                has_shipment=shipment is not None,
+            )
+        )
+
+    return result

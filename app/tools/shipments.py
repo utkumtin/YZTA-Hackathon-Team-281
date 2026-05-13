@@ -6,7 +6,7 @@ from pydantic_ai import RunContext
 from sqlalchemy import select
 
 from app.agents.deps import AgentDeps
-from app.models.domain import Carrier, ShipmentAnomaly
+from app.models.domain import ActiveShipmentInfo, Carrier, ShipmentAnomaly, ShipmentStatus
 from app.models.tables import Order, Shipment
 
 
@@ -74,3 +74,54 @@ async def list_shipments_anomaly(
         )
 
     return anomalies
+
+
+async def list_active_shipments(
+    ctx: RunContext[AgentDeps],
+    limit: int = 50,
+) -> list[ActiveShipmentInfo]:
+    """
+    Fetch all active shipments for the morning briefing.
+
+    A shipment is considered active when its status is not ``delivered`` or
+    ``returned``. The ``is_delayed`` flag is set when the last status update is
+    older than 24 hours, which lets the briefing report count delayed shipments
+    without an additional query.
+
+    Args:
+        ctx: Runtime context containing AgentDeps and the async database session.
+        limit: Maximum number of records to return.
+
+    Returns:
+        A list of ActiveShipmentInfo objects. Does not contain PII.
+
+    Concurrency note:
+        DB query is guarded with ctx.deps.db_lock because PydanticAI may run
+        tools concurrently on the same AsyncSession.
+    """
+
+    db = ctx.deps.db
+    now = datetime.now(timezone.utc)
+    delay_cutoff = now - timedelta(hours=24)
+
+    stmt = (
+        select(Shipment)
+        .where(Shipment.status.notin_(["delivered", "returned"]))
+        .order_by(Shipment.last_status_change_at.asc())
+        .limit(limit)
+    )
+
+    async with ctx.deps.db_lock:
+        rows = (await db.execute(stmt)).scalars().all()
+
+    return [
+        ActiveShipmentInfo(
+            tracking_id=shipment.tracking_id,
+            carrier=Carrier(shipment.carrier),
+            status=ShipmentStatus(shipment.status),
+            current_branch=shipment.current_branch,
+            eta=shipment.eta,
+            is_delayed=shipment.last_status_change_at <= delay_cutoff,
+        )
+        for shipment in rows
+    ]

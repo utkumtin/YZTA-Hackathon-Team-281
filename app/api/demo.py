@@ -164,3 +164,26 @@ async def trigger_jobs(db: AsyncSession = Depends(get_db)) -> dict[str, object]:
     summary = await run_proactive_jobs(deps)
 
     return summary.model_dump()
+
+
+@router.post("/trigger-briefing", summary="Sabah brifingini manuel tetikle")
+async def trigger_briefing(db: AsyncSession = Depends(get_db)) -> dict[str, object]:
+    """Demo sırasında sabah brifingini elle çalıştırmak için yardımcı endpoint.
+
+    Production'da bu endpoint APScheduler ile 08:00'de otomatik tetiklenir.
+    """
+
+    if not settings.demo_mode_enabled:
+        raise HTTPException(status_code=403, detail="Demo mode is disabled")
+
+    from app.agents.proactive_jobs import run_morning_briefing
+
+    deps = AgentDeps(
+        db=db,
+        owner_chat_id=settings.owner_telegram_id,
+        bot_token=settings.telegram_bot_token,
+    )
+
+    summary = await run_morning_briefing(deps)
+
+    return summary.model_dump()

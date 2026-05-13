@@ -69,5 +69,4 @@ def get_customer_support_agent() -> Agent:
         tools=[get_order, get_shipment],
         output_type=str,
         output_retries=1,
-        max_tool_calls=6,
     )
