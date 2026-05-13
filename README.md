@@ -22,8 +22,6 @@ Small business owners spend 2–3 hours a day answering the same questions: *Whe
 </p>
 <p align="center">
   <img src="screenshots/app/low_stock_warning.png" width="45%" />
-  &nbsp;&nbsp;
-  <img src="screenshots/app/tool_call_logs.png" width="45%" />
 </p>
 
 ---
