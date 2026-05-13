@@ -67,7 +67,7 @@ def get_morning_briefing_agent() -> Agent:
     """
 
     return Agent(
-        model=get_llm_model_string(),
+        model="gemini-3.1-flash-lite-preview",
         deps_type=AgentDeps,
         output_type=BriefingSummary,
         output_retries=2,
