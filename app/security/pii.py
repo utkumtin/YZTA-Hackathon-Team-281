@@ -7,7 +7,7 @@ class PIIMap(BaseModel):
 
 # Regex Patterns
 # TC Kimlik: 11 haneli sayı
-TC_PATTERN = re.compile(r'\b\d{11}\b')
+TC_PATTERN = re.compile(r'\b[1-9]\d{10}\b')
 
 # Telefon Numarası: opsiyonel +90 veya 0, opsiyonel parantez, boşluklu/tireli veya bitişik numaralar
 # Örn: 0532 123 45 67, +90 532 111 22 33, 0212 555 66 77

@@ -65,3 +65,13 @@ def test_pii_t8_mixed():
     assert "[TEL_REDACTED_0]" in redacted
     assert len(pii_map.entries) == 2
     assert restore(redacted, pii_map) == text
+
+def test_pii_t9_invalid_tc_starts_with_zero():
+    # PII-T9: 0 ile başlayan 11 haneli sayı TC kabul edilmemeli.
+    # Ancak telefon formatına (0 ile başlayan 11 haneli) uyduğu için TEL olarak maskelenir.
+    text = "01234567890"
+    redacted, pii_map = redact(text)
+    assert "[TC_REDACTED_0]" not in redacted
+    assert "[TEL_REDACTED_0]" in redacted
+    assert pii_map.entries == {"[TEL_REDACTED_0]": "01234567890"}
+    assert restore(redacted, pii_map) == text
