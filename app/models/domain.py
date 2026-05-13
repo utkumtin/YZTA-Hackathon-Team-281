@@ -77,7 +77,7 @@ class ShipmentInfo(BaseModel):
 
 
 class ShipmentAnomaly(BaseModel):
-    """list_shipments_anomaly tool çıktısı — S2 proaktif kargo taraması için."""
+    """list_shipments_anomaly tool çıktısı — proaktif kargo taraması için."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -90,7 +90,7 @@ class ShipmentAnomaly(BaseModel):
 
 
 class LowStockItem(BaseModel):
-    """list_low_stock tool çıktısı — S3 stok taraması için."""
+    """list_low_stock tool çıktısı — stok taraması için."""
 
     model_config = ConfigDict(from_attributes=True)
 
