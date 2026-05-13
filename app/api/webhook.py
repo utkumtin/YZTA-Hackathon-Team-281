@@ -163,7 +163,7 @@ async def _handle_message(update: Update, db: AsyncSession) -> None:
 
 
 async def _handle_callback_query(update: Update, db: AsyncSession) -> None:
-    """Patron inline keyboard callback'lerini işler.
+    """KOBİ inline keyboard callback'lerini işler.
 
     Desteklenen callback_data formatları:
         supplier_email:approve:{sku}
@@ -186,6 +186,8 @@ async def _handle_callback_query(update: Update, db: AsyncSession) -> None:
             await _approve_supplier_email(cq, sku, db, bot)
         elif action == "reject":
             await _reject_supplier_email(cq, sku, bot)
+        elif action == "edit":
+            await _edit_supplier_email(cq, sku, bot)
         else:
             await cq.answer("Bilinmeyen işlem.")
     else:
@@ -195,7 +197,7 @@ async def _handle_callback_query(update: Update, db: AsyncSession) -> None:
 
 
 async def _approve_supplier_email(cq, sku: str, db: AsyncSession, bot: Bot) -> None:
-    """Patron 'Onayla' butonuna bastığında çalışır.
+    """KOBİ 'Onayla' butonuna bastığında çalışır.
 
     notification_log'daki son low_stock payload'ından e-posta bilgilerini
     alır ve outgoing_emails tablosuna sent_mock kaydı ekler.
@@ -253,7 +255,7 @@ async def _approve_supplier_email(cq, sku: str, db: AsyncSession, bot: Bot) -> N
 
 
 async def _reject_supplier_email(cq, sku: str, bot: Bot) -> None:
-    """Patron 'Reddet' butonuna bastığında çalışır.
+    """KOBİ 'Reddet' butonuna bastığında çalışır.
 
     outgoing_emails'e kayıt eklenmez. Log'a email_rejected_by_owner yazılır.
     """
@@ -265,6 +267,28 @@ async def _reject_supplier_email(cq, sku: str, bot: Bot) -> None:
         await bot.send_message(
             chat_id=cq.from_user.id,
             text=f"❌ {sku} için tedarikçi mail taslağı iptal edildi.",
+        )
+    except TelegramError:
+        pass
+
+
+async def _edit_supplier_email(cq, sku: str, bot: Bot) -> None:
+    """KOBİ 'Düzenle' butonuna bastığında çalışır.
+
+    Düzenleme özelliği ileride aktif olacak. KOBİ bilgilendirilir,
+    orijinal mesaj ve butonlar değiştirilmez.
+    """
+    logger.info("supplier_email_edit_requested", extra={"sku": sku})
+
+    await cq.answer("ℹ️ Düzenleme özelliği ileride aktif olacak.")
+
+    try:
+        await bot.send_message(
+            chat_id=cq.from_user.id,
+            text=(
+                f"ℹ️ {sku} için taslak düzenleme özelliği ileride aktif olacak.\n"
+                "Şimdilik Onayla veya Reddet seçeneğini kullanabilirsiniz."
+            ),
         )
     except TelegramError:
         pass

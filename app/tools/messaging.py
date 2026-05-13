@@ -258,6 +258,7 @@ async def send_owner_email_draft(
         [
             [
                 InlineKeyboardButton("✅ Onayla", callback_data=f"supplier_email:approve:{sku}"),
+                InlineKeyboardButton("✏️ Düzenle", callback_data=f"supplier_email:edit:{sku}"),
                 InlineKeyboardButton("❌ Reddet", callback_data=f"supplier_email:reject:{sku}"),
             ]
         ]
