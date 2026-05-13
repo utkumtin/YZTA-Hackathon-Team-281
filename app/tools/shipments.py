@@ -1,0 +1,76 @@
+"""Kargo anomaly tarama tool'ları."""
+
+from datetime import datetime, timedelta, timezone
+
+from pydantic_ai import RunContext
+from sqlalchemy import select
+
+from app.agents.deps import AgentDeps
+from app.models.domain import Carrier, ShipmentAnomaly
+from app.models.tables import Order, Shipment
+
+
+async def list_shipments_anomaly(
+    ctx: RunContext[AgentDeps],
+    older_than_hours: int = 6,
+    limit: int = 20,
+) -> list[ShipmentAnomaly]:
+    """
+    Find shipments that may require proactive customer communication.
+
+    A shipment is considered anomalous when its status is ``in_transit`` and its
+    last status update is older than ``older_than_hours``. The tool returns only
+    non-PII operational fields so the agent can decide whether to inform the
+    customer without seeing customer name, phone, address, or email.
+
+    Args:
+        ctx: Runtime context containing AgentDeps and the async database session.
+        older_than_hours: Minimum age of the last shipment update in hours.
+        limit: Maximum number of anomaly records to return.
+
+    Returns:
+        A list of ShipmentAnomaly objects containing order_id, customer_id,
+        tracking_id, carrier, current_branch and waited_hours.
+
+    Concurrency note:
+        PydanticAI may execute multiple tools concurrently. SQLAlchemy AsyncSession
+        does not allow concurrent operations on the same session, so the DB query is
+        guarded with ctx.deps.db_lock.
+    """
+
+    db = ctx.deps.db
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=older_than_hours)
+
+    stmt = (
+        select(Shipment, Order)
+        .join(Order, Order.id == Shipment.order_id)
+        .where(
+            Shipment.status == "in_transit",
+            Shipment.last_status_change_at <= cutoff,
+        )
+        .order_by(Shipment.last_status_change_at.asc())
+        .limit(limit)
+    )
+
+    async with ctx.deps.db_lock:
+        rows = (await db.execute(stmt)).all()
+
+    anomalies: list[ShipmentAnomaly] = []
+
+    for shipment, order in rows:
+        waited_hours = int(
+            (now - shipment.last_status_change_at).total_seconds() // 3600)
+
+        anomalies.append(
+            ShipmentAnomaly(
+                order_id=order.id,
+                customer_id=order.customer_id,
+                tracking_id=shipment.tracking_id,
+                carrier=Carrier(shipment.carrier),
+                current_branch=shipment.current_branch,
+                waited_hours=waited_hours,
+            )
+        )
+
+    return anomalies

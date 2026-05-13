@@ -5,7 +5,8 @@ Yeni bir runtime bağımlılık (örn. http client, cache) eklenecekse buraya
 alan ekle — her tool imzasına ayrı parametre koyma.
 """
 
-from dataclasses import dataclass
+import asyncio
+from dataclasses import dataclass, field
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class AgentDeps:
     """Tüm tool'ların RunContext[AgentDeps] üzerinden eriştiği runtime context.
 
-    Kullanım (webhook handler içinde):
+    Kullanım:
         async with AsyncSessionLocal() as db:
             deps = AgentDeps(
                 db=db,
@@ -23,10 +24,15 @@ class AgentDeps:
             )
             result = await agent.run(text, deps=deps)
 
-    Kritik kural: AgentDeps'i async with bloğu DIŞINDA oluşturma;
-    session context manager'dan çıkınca kapatılır, sonraki await çakışır.
+    Kritik kurallar:
+    - AgentDeps'i async with bloğu DIŞINDA oluşturma.
+      Session context manager'dan çıkınca kapatılır.
+    - Aynı AsyncSession üzerinde eş zamanlı DB işlemi yapılmamalıdır.
+      PydanticAI bazı tool çağrılarını paralel çalıştırabildiği için DB kullanan
+      tool'lar ctx.deps.db_lock ile DB işlemlerini sıraya almalıdır.
     """
 
     db: AsyncSession
-    owner_chat_id: int  # OWNER_TELEGRAM_ID — env'den int olarak gelir
-    bot_token: str  # python-telegram-bot send wrapper'ı için
+    owner_chat_id: int | None = None  # OWNER_TELEGRAM_ID — env'den gelir
+    bot_token: str | None = None  # python-telegram-bot send wrapper'ı için
+    db_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)

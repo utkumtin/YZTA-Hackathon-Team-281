@@ -8,12 +8,35 @@ from app.config import settings
 
 
 def get_llm_model_string() -> str:
-    """Agent'ların kullandığı model string'ini config'den toplar.
-
-    Dönüş formatı PydanticAI convention'ına uyar:
-    ``"{provider}:{model}"``  →  örn. ``"gemini:gemini-2.5-flash"``
-
-    Agent kurulumu:
-        agent = Agent(model=get_llm_model_string(), ...)
     """
-    return f"{settings.llm_provider}:{settings.llm_model}"
+    Agent'ların kullandığı PydanticAI model string'ini config'den üretir.
+
+    Not:
+        PydanticAI, Gemini için provider adını "gemini" olarak değil,
+        Google AI Studio için "google-gla" olarak bekler.
+
+    Örnek:
+        LLM_PROVIDER=gemini
+        LLM_MODEL=gemini-2.5-flash
+
+        dönüş:
+        google-gla:gemini-2.5-flash
+    """
+
+    provider = (settings.llm_provider or "gemini").strip().lower()
+    model = (settings.llm_model or "gemini-2.5-flash").strip()
+
+    # Eğer kullanıcı .env içine direkt tam PydanticAI model string'i yazarsa,
+    # örn: LLM_MODEL=google-gla:gemini-2.5-flash
+    # onu bozmadan döndür.
+    if ":" in model:
+        return model
+
+    if provider in {"gemini", "google", "google-gla", "google_ai", "google-ai"}:
+        return f"google-gla:{model}"
+
+    if provider in {"openai", "chatgpt"}:
+        return f"openai:{model}"
+
+    # Diğer provider'lar için kullanıcı PydanticAI'ın beklediği provider adını vermişse kullan.
+    return f"{provider}:{model}"

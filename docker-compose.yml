@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -27,7 +27,7 @@ services:
       - POSTGRES_PASSWORD=kobi
       - POSTGRES_DB=kobi_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
