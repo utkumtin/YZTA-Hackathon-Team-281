@@ -14,16 +14,14 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-# Logging modülü import edilir edilmez root logger yapılandırılır
 import app.logging  # noqa: F401
 
-# Router imports
 from app.api.demo import router as demo_router
 from app.api.health import router as health_router
 from app.api.webhook import router as webhook_router
 from app.config import settings
 from app.db import check_db_connection
-from app.logging import get_logger
+from app.logging import get_logger, setup_logfire
 
 logger = get_logger(__name__)
 
@@ -34,6 +32,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # ── Startup ──────────────────────────────────────────────────────────────
     logger.info("startup_begin", extra={"env": settings.env, "log_level": settings.log_level})
+
+    # 0. Logfire başlat (token varsa)
+    logfire_active = setup_logfire()
+    if logfire_active:
+        import logfire
+        logfire.instrument_fastapi(app)
+        logger.info("logfire_active", extra={"service": "kobiops", "env": settings.env})
+    else:
+        logger.info("logfire_disabled", extra={"reason": "LOGFIRE_TOKEN not set or logfire not installed"})
 
     # 1. DB bağlantı testi
     try:

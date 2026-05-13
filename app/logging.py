@@ -4,12 +4,20 @@ app/logging.py — JSON formatter ve logger fabrikası
 Tüm uygulama bu modül üzerinden logger alır:
     from app.logging import get_logger
     logger = get_logger(__name__)
+
+Logfire token set edilirse startup sırasında setup_logfire() ile aktifleştirilir.
 """
 
 import json
 import logging
 import sys
 from datetime import datetime, timezone
+
+try:
+    import logfire
+    _LOGFIRE_AVAILABLE = True
+except ImportError:
+    _LOGFIRE_AVAILABLE = False
 
 from app.config import settings
 
@@ -80,6 +88,30 @@ def _configure_root_logger() -> None:
 
 
 _configure_root_logger()
+
+
+def setup_logfire() -> bool:
+    """Logfire'ı yapılandırır; LOGFIRE_TOKEN yoksa veya paket eksikse False döner.
+
+    Uygulama startup'ında çağrılmalıdır.
+    """
+    if not _LOGFIRE_AVAILABLE:
+        return False
+
+    from app.config import settings  # circular import önlemek için lazy
+
+    token = settings.logfire_token
+    if not token:
+        return False
+
+    logfire.configure(
+        token=token,
+        service_name="kobiops",
+        environment=settings.env,
+        send_to_logfire=True,
+    )
+    logfire.instrument_pydantic()
+    return True
 
 
 def get_logger(name: str) -> logging.Logger:
