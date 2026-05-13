@@ -2,6 +2,8 @@
 
 from datetime import datetime, timedelta, timezone
 
+from functools import lru_cache
+
 from pydantic_ai import RunContext
 from sqlalchemy import select
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,6 +12,11 @@ from telegram.error import Forbidden, TelegramError
 from app.agents.deps import AgentDeps
 from app.models.domain import LowStockItem, MessageDispatchResult, SupplierEmailDraft
 from app.models.tables import Customer, NotificationLog, Order
+
+
+@lru_cache(maxsize=1)
+def _get_bot(bot_token: str) -> Bot:
+    return Bot(token=bot_token)
 
 
 async def _send_telegram_message(
@@ -27,7 +34,7 @@ async def _send_telegram_message(
     if not bot_token or not chat_id:
         return
 
-    bot = Bot(token=bot_token)
+    bot = _get_bot(bot_token)
     await bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
 
 
@@ -126,7 +133,7 @@ async def send_proactive_message(
         )
     except TelegramError as exc:
         return MessageDispatchResult(
-            status="skipped_blocked",
+            status="skipped_telegram_error",
             channel="tg_customer",
             entity_ref=entity_ref,
             detail=f"Telegram error: {exc}",
@@ -250,10 +257,8 @@ async def send_owner_email_draft(
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
-                    "✅ Onayla", callback_data=f"supplier_email:approve:{sku}"),
-                InlineKeyboardButton(
-                    "❌ Reddet", callback_data=f"supplier_email:reject:{sku}"),
+                InlineKeyboardButton("✅ Onayla", callback_data=f"supplier_email:approve:{sku}"),
+                InlineKeyboardButton("❌ Reddet", callback_data=f"supplier_email:reject:{sku}"),
             ]
         ]
     )

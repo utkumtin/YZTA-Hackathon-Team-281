@@ -3,6 +3,7 @@
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.exceptions import ModelHTTPError
 from sqlalchemy import select
+from functools import lru_cache
 
 from app.agents.deps import AgentDeps
 from app.llm.provider import get_llm_model_string
@@ -10,6 +11,7 @@ from app.models.domain import SupplierEmailDraft
 from app.models.tables import Product, Supplier
 
 
+@lru_cache(maxsize=1)
 def build_supplier_email_agent() -> Agent:
     """
     Builds the supplier email sub-agent lazily.
