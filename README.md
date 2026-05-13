@@ -158,4 +158,4 @@ For agent design, tool catalog, and PII layer implementation details, see [`docs
 
 ## License
 
-MIT
+Polyform-Noncommercial-1.0.0
