@@ -27,7 +27,14 @@ from app.models.tables import (
     Stock,
     Supplier,
 )
-from app.seed.fixtures import CUSTOMERS, ORDERS, PRODUCTS, SHIPMENTS, STOCK, SUPPLIERS
+from app.seed.fixtures import (
+    get_customer_fixtures,
+    get_order_fixtures,
+    get_product_fixtures,
+    get_shipment_fixtures,
+    get_stock_fixtures,
+    get_supplier_fixtures,
+)
 
 router = APIRouter(prefix="/demo", tags=["demo"])
 
@@ -73,24 +80,31 @@ async def reset_demo(db: AsyncSession = Depends(get_db)) -> dict[str, object]:
         )
     )
 
-    db.add_all([Customer(**item) for item in CUSTOMERS])
-    db.add_all([Supplier(**item) for item in SUPPLIERS])
-    db.add_all([Product(**item) for item in PRODUCTS])
-    db.add_all([Stock(**item) for item in STOCK])
-    db.add_all([Order(**item) for item in ORDERS])
-    db.add_all([Shipment(**item) for item in SHIPMENTS])
+    customers = get_customer_fixtures()
+    suppliers = get_supplier_fixtures()
+    products = get_product_fixtures()
+    stock = get_stock_fixtures()
+    orders = get_order_fixtures()
+    shipments = get_shipment_fixtures()
+
+    db.add_all([Customer(**item) for item in customers])
+    db.add_all([Supplier(**item) for item in suppliers])
+    db.add_all([Product(**item) for item in products])
+    db.add_all([Stock(**item) for item in stock])
+    db.add_all([Order(**item) for item in orders])
+    db.add_all([Shipment(**item) for item in shipments])
 
     await db.commit()
 
     return {
         "status": "ok",
         "inserted": {
-            "customers": len(CUSTOMERS),
-            "suppliers": len(SUPPLIERS),
-            "products": len(PRODUCTS),
-            "stock": len(STOCK),
-            "orders": len(ORDERS),
-            "shipments": len(SHIPMENTS),
+            "customers": len(customers),
+            "suppliers": len(suppliers),
+            "products": len(products),
+            "stock": len(stock),
+            "orders": len(orders),
+            "shipments": len(shipments),
         },
         "owner_telegram_id_from_env": bool(settings.owner_telegram_id),
     }

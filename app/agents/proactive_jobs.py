@@ -30,6 +30,8 @@ def get_proactive_jobs_agent() -> Agent:
         model=get_llm_model_string(),
         deps_type=AgentDeps,
         output_type=ProactiveRunSummary,
+        output_retries=2,
+        max_tool_calls=12,
         tools=[
             list_shipments_anomaly,
             list_low_stock,
