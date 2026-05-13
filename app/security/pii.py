@@ -1,17 +1,18 @@
 import re
+from dataclasses import dataclass, field
 from typing import Dict, Tuple
-from pydantic import BaseModel, Field
 
-class PIIMap(BaseModel):
-    entries: Dict[str, str] = Field(default_factory=dict)
+@dataclass
+class PIIMap:
+    entries: Dict[str, str] = field(default_factory=dict)
 
 # Regex Patterns
 # TC Kimlik: 11 haneli sayı
 TC_PATTERN = re.compile(r'\b[1-9]\d{10}\b')
 
-# Telefon Numarası: opsiyonel +90 veya 0, opsiyonel parantez, boşluklu/tireli veya bitişik numaralar
+# Telefon Numarası: zorunlu +90 veya 0 ile başlar, opsiyonel parantez, boşluklu/tireli veya bitişik numaralar
 # Örn: 0532 123 45 67, +90 532 111 22 33, 0212 555 66 77
-PHONE_PATTERN = re.compile(r'(?:\+?90|0)?[\s\-]*\(?\d{3}\)?[\s\-]*\d{3}[\s\-]*\d{2}[\s\-]*\d{2}')
+PHONE_PATTERN = re.compile(r'(?:\+90[\s\-]?|0)[\s\-]*\(?\d{3}\)?[\s\-]*\d{3}[\s\-]*\d{2}[\s\-]*\d{2}')
 
 # IBAN: TR ile başlar, 2 hane, sonra 4'erli veya bitişik haneler
 IBAN_PATTERN = re.compile(r'\bTR\d{2}(?:\s?\d{4}){5}\s?\d{2}\b')
@@ -49,16 +50,16 @@ def redact(text: str) -> Tuple[str, PIIMap]:
         pii_map.entries[placeholder] = original_val
         return placeholder
 
-    # 1. Email
-    text = EMAIL_PATTERN.sub(lambda m: replacer(m, "EPOSTA"), text)
+    # 1. TC
+    text = TC_PATTERN.sub(lambda m: replacer(m, "TC"), text)
     # 2. IBAN
     text = IBAN_PATTERN.sub(lambda m: replacer(m, "IBAN"), text)
     # 3. Kredi Kartı
     text = CARD_PATTERN.sub(lambda m: replacer(m, "KART"), text)
-    # 4. TC
-    text = TC_PATTERN.sub(lambda m: replacer(m, "TC"), text)
-    # 5. Telefon
+    # 4. Telefon
     text = PHONE_PATTERN.sub(lambda m: replacer(m, "TEL"), text)
+    # 5. Email
+    text = EMAIL_PATTERN.sub(lambda m: replacer(m, "EPOSTA"), text)
 
     return text, pii_map
 
