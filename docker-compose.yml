@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    container_name: simurg
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # DATABASE_URL .env'den okunur; docker network'te db hostname'i kullanılmalı
+      - DATABASE_URL=postgresql+asyncpg://kobi:kobi@db:5432/kobi_db
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: kobiops_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=kobi
+      - POSTGRES_PASSWORD=kobi
+      - POSTGRES_DB=kobi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kobi -d kobi_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
